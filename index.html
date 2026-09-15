@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Buy CTH | BNB Smart Chain</title>
+  <meta name="description" content="Buy Wrapped CTH Token directly with USDT on BNB Smart Chain via PancakeSwap V3." />
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#08101d; --panel:#101b2f; --panel2:#0b1526; --text:#f4f7fb;
+      --muted:#9fb0c8; --line:#20314d; --accent:#6fe7d2; --accent2:#48bfa9;
+      --danger:#ff8d8d; --warn:#ffd27a; --ok:#76e6a7;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:radial-gradient(circle at 30% -10%,#18355a 0,transparent 35%),var(--bg);
+      color:var(--text); padding:28px 16px;
+    }
+    .wrap{max-width:720px;margin:0 auto}
+    .brand{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:22px}
+    .brand h1{font-size:24px;margin:0}
+    .network{font-size:12px;padding:8px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+    .card{background:linear-gradient(180deg,rgba(16,27,47,.98),rgba(11,21,38,.98));border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 24px 60px rgba(0,0,0,.25)}
+    .row{display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .token{font-weight:750;font-size:19px}
+    .muted{color:var(--muted);font-size:13px}
+    .amountbox{margin-top:10px;padding:16px;background:#091322;border:1px solid var(--line);border-radius:16px}
+    input,select{
+      background:transparent;border:0;outline:0;color:var(--text);font-size:30px;width:100%;
+    }
+    select{font-size:14px;width:auto}
+    .swapicon{text-align:center;font-size:22px;color:var(--muted);padding:9px}
+    .quote{margin-top:14px;padding:13px 14px;border:1px solid var(--line);border-radius:14px;background:#0a1424}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    button{
+      width:100%;padding:14px 16px;border:0;border-radius:14px;font-weight:750;font-size:15px;cursor:pointer;
+      background:var(--accent);color:#06100f;transition:.15s ease;
+    }
+    button:hover{transform:translateY(-1px);background:var(--accent2)}
+    button.secondary{background:#17263e;color:var(--text);border:1px solid var(--line)}
+    button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .status{margin-top:13px;font-size:13px;line-height:1.5;min-height:20px;color:var(--muted);word-break:break-word}
+    .status.ok{color:var(--ok)} .status.err{color:var(--danger)} .status.warn{color:var(--warn)}
+    .notice{margin-top:18px;padding:14px;border-radius:14px;border:1px solid #4b3b1d;background:#201a0d;color:#f6dca5;font-size:12px;line-height:1.55}
+    .meta{margin-top:18px;font-size:12px;color:var(--muted);line-height:1.7}
+    .meta code{color:#cfe1fa;word-break:break-all}
+    a{color:var(--accent);text-decoration:none}
+    footer{text-align:center;color:#687991;font-size:11px;margin-top:18px}
+
+
+    .quick-title{margin-top:14px;font-size:12px;color:var(--muted)}
+    .quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+    .quick-btn{padding:10px 8px;background:#17263e;color:var(--text);border:1px solid var(--line);font-size:13px}
+    .quick-btn:hover{background:#213555;color:var(--text)}
+    .market-card{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;background:#0a1424}
+    .market-price{font-size:22px;font-weight:800;margin-top:3px}
+    .metric-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .metric{padding:10px;border:1px solid var(--line);border-radius:12px;background:#091322}
+    .metric .value{font-weight:750;margin-top:3px}
+    .impact-low{color:var(--ok)} .impact-mid{color:var(--warn)} .impact-high{color:var(--danger)}
+    .tx-box{display:none;margin-top:13px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#0a1424}
+    .tx-box.show{display:block}
+    .tx-link{display:inline-flex;margin-top:8px;padding:10px 12px;border-radius:11px;background:#17263e;border:1px solid var(--line);color:var(--accent);font-weight:700;font-size:13px}
+    .live-pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--muted)}
+    .live-pill:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px rgba(118,230,167,.09)}
+
+    .wallet-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .wallet-actions button{width:auto}
+    .mm-btn{background:#f6851b;color:#16110b}
+    .mm-btn:hover{background:#e77813}
+    .mobile-open{display:none;background:#17263e!important;color:var(--text)!important;border:1px solid var(--line)!important}
+    .wallet-badge{display:inline-flex;align-items:center;gap:7px;font-size:12px;padding:7px 10px;border:1px solid var(--line);border-radius:999px;color:var(--muted);margin-top:8px}
+    .dot{width:8px;height:8px;border-radius:999px;background:#65758c}
+    .dot.ok{background:#76e6a7}.dot.warn{background:#ffd27a}.dot.err{background:#ff8d8d}
+    .chain-box{margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#0a1424}
+    .chain-box strong{font-size:13px}
+
+    @media(max-width:520px){.grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:repeat(2,1fr)}.metric-row{grid-template-columns:1fr}.brand{align-items:flex-start;flex-direction:column}.card{padding:16px} input{font-size:26px}.wallet-actions{width:100%}.wallet-actions button{width:100%}.mobile-open{display:block}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <div>
+      <h1>Buy Wrapped CTH</h1>
+      <div class="muted">Direct swap on PancakeSwap V3</div>
+    </div>
+    <div class="network">BNB Smart Chain · Chain ID 56</div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="align-items:flex-start;flex-wrap:wrap">
+      <div>
+        <div class="muted">Wallet</div>
+        <div id="walletText">Not connected</div>
+        <div class="wallet-badge">
+          <span id="walletDot" class="dot"></span>
+          <span id="walletBadgeText">MetaMask not connected</span>
+        </div>
+      </div>
+      <div class="wallet-actions">
+        <button id="connectBtn" class="mm-btn">🦊 Connect MetaMask</button>
+        <button id="openMetaMaskBtn" class="mobile-open">Open in MetaMask</button>
+      </div>
+    </div>
+
+    <div class="chain-box">
+      <div class="row">
+        <div>
+          <div class="muted">Network</div>
+          <strong id="networkText">Not checked</strong>
+        </div>
+        <button id="switchNetworkBtn" class="secondary" style="width:auto;padding:10px 12px">Switch to BSC</button>
+      </div>
+    </div>
+
+    <div class="amountbox">
+      <div class="row">
+        <span class="muted">You pay</span>
+        <span class="muted" id="usdtBal">USDT balance: —</span>
+      </div>
+      <div class="row" style="margin-top:7px">
+        <input id="amountIn" inputmode="decimal" placeholder="0.00" />
+        <div class="token">USDT</div>
+      </div>
+    </div>
+
+    <div class="quick-title">Quick buy amount</div>
+    <div class="quick-grid">
+      <button class="quick-btn" data-amount="5">$5</button>
+      <button class="quick-btn" data-amount="10">$10</button>
+      <button class="quick-btn" data-amount="20">$20</button>
+      <button class="quick-btn" data-amount="50">$50</button>
+    </div>
+
+    <div class="swapicon">↓</div>
+
+    <div class="amountbox">
+      <div class="row">
+        <span class="muted">Estimated receive</span>
+        <span class="muted" id="cthBal">CTH balance: —</span>
+      </div>
+      <div class="row" style="margin-top:7px">
+        <input id="amountOut" placeholder="0.00" readonly />
+        <div class="token">CTH</div>
+      </div>
+    </div>
+
+    <div class="market-card">
+      <div class="row">
+        <div>
+          <div class="muted">Indicative CTH price</div>
+          <div id="cthPrice" class="market-price">—</div>
+        </div>
+        <div class="live-pill">On-chain quote</div>
+      </div>
+      <div class="metric-row">
+        <div class="metric">
+          <div class="muted">Estimated price impact</div>
+          <div id="priceImpact" class="value">—</div>
+        </div>
+        <div class="metric">
+          <div class="muted">Quote source</div>
+          <div class="value">PancakeSwap V3</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="quote">
+      <div class="row"><span class="muted">Pool fee</span><span>0.05%</span></div>
+      <div class="row" style="margin-top:7px">
+        <span class="muted">Slippage tolerance</span>
+        <select id="slippage">
+          <option value="50">0.5%</option>
+          <option value="100" selected>1.0%</option>
+          <option value="300">3.0%</option>
+          <option value="500">5.0%</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:7px"><span class="muted">Minimum received</span><span id="minReceived">—</span></div>
+    </div>
+
+    <div class="grid">
+      <button id="quoteBtn" class="secondary">Refresh Quote</button>
+      <button id="buyBtn" disabled>Buy CTH</button>
+    </div>
+
+    <div id="status" class="status">Connect an EVM wallet to begin.</div>
+
+    <div id="txBox" class="tx-box">
+      <div class="muted">Latest purchase transaction</div>
+      <div id="txHash" style="margin-top:5px;font-size:12px;word-break:break-all">—</div>
+      <a id="txLink" class="tx-link" href="#" target="_blank" rel="noopener">View on BscScan ↗</a>
+    </div>
+
+    <div class="notice">
+      <strong>Liquidity warning:</strong> this CTH/USDT pool may have low liquidity.
+      A larger order can move the price substantially. Always review the wallet confirmation,
+      estimated output, minimum received and network before signing.
+    </div>
+
+    <div class="meta">
+      CTH: <code>0x8888888809b788CD6e40a2D27e67425D5D0B5d3B</code><br>
+      USDT: <code>0x55d398326f99059fF775485246999027B3197955</code><br>
+      PancakeSwap V3 pool: <code>0x0d5209Ac05f6A72b53cBD48D0a67e722234662d8</code>
+    </div>
+  </div>
+  <footer>Non-custodial interface · Funds move only after wallet approval · Rev.03</footer>
+</div>
+
+<script>
+const { ethers } = window;
+
+const CFG = {
+  chainIdHex: "0x38",
+  chainId: 56n,
+  usdt: "0x55d398326f99059fF775485246999027B3197955",
+  cth:  "0x8888888809b788CD6e40a2D27e67425D5D0B5d3B",
+  router: "0x1b81D678ffb9C0263b24A97847620C99d213eB14",
+  quoter: "0xB048Bbc1Ee6b733FFfCFb9e9CeF7375518e25997",
+  fee: 500
+};
+
+const erc20Abi = [
+  "function balanceOf(address) view returns (uint256)",
+  "function allowance(address,address) view returns (uint256)",
+  "function approve(address,uint256) returns (bool)",
+  "function decimals() view returns (uint8)"
+];
+
+const quoterAbi = [
+  "function quoteExactInputSingle((address tokenIn,address tokenOut,uint256 amountIn,uint24 fee,uint160 sqrtPriceLimitX96) params) returns (uint256 amountOut,uint160 sqrtPriceX96After,uint32 initializedTicksCrossed,uint256 gasEstimate)"
+];
+
+const routerAbi = [
+  "function exactInputSingle((address tokenIn,address tokenOut,uint24 fee,address recipient,uint256 amountIn,uint256 amountOutMinimum,uint160 sqrtPriceLimitX96) params) payable returns (uint256 amountOut)"
+];
+
+let provider, signer, account;
+let usdtDecimals = 18, cthDecimals = 18;
+let lastQuote = 0n, lastAmountIn = 0n;
+let referenceQuote = 0n, quoteTimer = null;
+
+const $ = id => document.getElementById(id);
+const short = a => a ? `${a.slice(0,6)}…${a.slice(-4)}` : "Not connected";
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const isMetaMask = () => !!(window.ethereum && window.ethereum.isMetaMask);
+
+function setWalletBadge(state, text){
+  $("walletDot").className = `dot ${state || ""}`;
+  $("walletBadgeText").textContent = text;
+}
+
+async function updateNetworkUI(){
+  if(!window.ethereum){
+    $("networkText").textContent = "Wallet provider not detected";
+    return;
+  }
+  try{
+    const chainId = await window.ethereum.request({method:"eth_chainId"});
+    if(chainId.toLowerCase() === CFG.chainIdHex.toLowerCase()){
+      $("networkText").textContent = "BNB Smart Chain (56)";
+      $("switchNetworkBtn").disabled = true;
+    }else{
+      $("networkText").textContent = `Wrong network (${parseInt(chainId,16)})`;
+      $("switchNetworkBtn").disabled = false;
+    }
+  }catch{
+    $("networkText").textContent = "Unable to read network";
+  }
+}
+
+function openMetaMask(){
+  const current = window.location.href.replace(/^https?:\/\//, "");
+  window.location.href = `https://metamask.app.link/dapp/${current}`;
+}
+
+
+function setStatus(msg, type=""){
+  $("status").textContent = msg;
+  $("status").className = `status ${type}`;
+}
+
+async function ensureBsc(){
+  const net = await provider.getNetwork();
+  if(net.chainId === CFG.chainId) return;
+  try{
+    await window.ethereum.request({method:"wallet_switchEthereumChain", params:[{chainId:CFG.chainIdHex}]});
+  }catch(e){
+    if(e.code === 4902){
+      await window.ethereum.request({
+        method:"wallet_addEthereumChain",
+        params:[{
+          chainId:CFG.chainIdHex,
+          chainName:"BNB Smart Chain",
+          nativeCurrency:{name:"BNB",symbol:"BNB",decimals:18},
+          rpcUrls:["https://bsc-dataseed.binance.org/"],
+          blockExplorerUrls:["https://bscscan.com/"]
+        }]
+      });
+    } else throw e;
+  }
+  provider = new ethers.BrowserProvider(window.ethereum);
+  signer = await provider.getSigner();
+}
+
+async function connect(){
+  if(!window.ethereum){
+    setWalletBadge("err","MetaMask not detected");
+    if(isMobile){
+      setStatus("MetaMask is not detected in this browser. Tap “Open in MetaMask” to continue.", "warn");
+    }else{
+      setStatus("MetaMask extension is not detected. Install MetaMask, then reload this page.", "err");
+    }
+    return;
+  }
+
+  if(!isMetaMask()){
+    setWalletBadge("warn","EVM wallet detected");
+  }else{
+    setWalletBadge("warn","MetaMask detected");
+  }
+
+  try{
+    provider = new ethers.BrowserProvider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    signer = await provider.getSigner();
+    await ensureBsc();
+
+    account = await signer.getAddress();
+    $("walletText").textContent = short(account);
+    $("connectBtn").textContent = "🦊 MetaMask Connected";
+    $("connectBtn").className = "secondary";
+    setWalletBadge("ok","MetaMask connected");
+
+    const usdt = new ethers.Contract(CFG.usdt, erc20Abi, provider);
+    const cth = new ethers.Contract(CFG.cth, erc20Abi, provider);
+    usdtDecimals = Number(await usdt.decimals());
+    cthDecimals = Number(await cth.decimals());
+
+    await updateNetworkUI();
+    await refreshBalances();
+    $("buyBtn").disabled = false;
+    try{
+      const q = new ethers.Contract(CFG.quoter, quoterAbi, provider);
+      await getReferenceQuote(q);
+    }catch{}
+    setStatus("MetaMask connected on BNB Smart Chain. Choose a quick amount or enter USDT to buy CTH.", "ok");
+  }catch(e){
+    setWalletBadge("err","Connection failed");
+    setStatus(e.shortMessage || e.message || "MetaMask connection failed.", "err");
+  }
+}
+
+async function refreshBalances(){
+  if(!account || !provider) return;
+  const usdt = new ethers.Contract(CFG.usdt, erc20Abi, provider);
+  const cth = new ethers.Contract(CFG.cth, erc20Abi, provider);
+  const [u,c] = await Promise.all([usdt.balanceOf(account), cth.balanceOf(account)]);
+  $("usdtBal").textContent = `USDT balance: ${Number(ethers.formatUnits(u,usdtDecimals)).toLocaleString(undefined,{maximumFractionDigits:4})}`;
+  $("cthBal").textContent = `CTH balance: ${Number(ethers.formatUnits(c,cthDecimals)).toLocaleString(undefined,{maximumFractionDigits:6})}`;
+}
+
+
+function formatNum(value, max=8){
+  const n = Number(value);
+  if(!Number.isFinite(n)) return "—";
+  return n.toLocaleString(undefined,{maximumFractionDigits:max});
+}
+
+async function getReferenceQuote(quoter){
+  // 1 USDT reference quote used to derive an indicative CTH/USDT price
+  const oneUsdt = ethers.parseUnits("1", usdtDecimals);
+  const r = await quoter.quoteExactInputSingle.staticCall({
+    tokenIn: CFG.usdt,
+    tokenOut: CFG.cth,
+    amountIn: oneUsdt,
+    fee: CFG.fee,
+    sqrtPriceLimitX96: 0
+  });
+  referenceQuote = r[0];
+  const cthPerUsdt = Number(ethers.formatUnits(referenceQuote, cthDecimals));
+  if(cthPerUsdt > 0){
+    const priceUsdt = 1 / cthPerUsdt;
+    $("cthPrice").textContent = `${priceUsdt.toLocaleString(undefined,{maximumSignificantDigits:7})} USDT`;
+  }else{
+    $("cthPrice").textContent = "—";
+  }
+  return referenceQuote;
+}
+
+function updatePriceImpact(amountIn, actualOut){
+  if(referenceQuote <= 0n || amountIn <= 0n){
+    $("priceImpact").textContent = "—";
+    $("priceImpact").className = "value";
+    return;
+  }
+
+  // Expected output at the 1-USDT marginal quote, scaled to entered amount.
+  const oneUsdt = ethers.parseUnits("1", usdtDecimals);
+  const expectedLinear = referenceQuote * amountIn / oneUsdt;
+  if(expectedLinear <= 0n){
+    $("priceImpact").textContent = "—";
+    return;
+  }
+
+  let bps = (expectedLinear - actualOut) * 10000n / expectedLinear;
+  if(bps < 0n) bps = 0n;
+  const pct = Number(bps) / 100;
+  $("priceImpact").textContent = `~${pct.toFixed(2)}%`;
+  $("priceImpact").className = "value " + (pct < 1 ? "impact-low" : pct < 3 ? "impact-mid" : "impact-high");
+}
+
+async function getQuote(){
+  if(!provider) return setStatus("Connect wallet first.", "warn");
+  try{
+    await ensureBsc();
+    const raw = $("amountIn").value.trim();
+    if(!raw || Number(raw) <= 0){
+      $("amountOut").value = "";
+      $("minReceived").textContent = "—";
+      $("priceImpact").textContent = "—";
+      return setStatus("Enter a USDT amount.", "warn");
+    }
+
+    const amountIn = ethers.parseUnits(raw, usdtDecimals);
+    const quoter = new ethers.Contract(CFG.quoter, quoterAbi, provider);
+    setStatus("Reading live PancakeSwap V3 quote…");
+
+    // Pull the 1-USDT reference and requested-size quote together.
+    const [refResult, result] = await Promise.all([
+      quoter.quoteExactInputSingle.staticCall({
+        tokenIn: CFG.usdt,
+        tokenOut: CFG.cth,
+        amountIn: ethers.parseUnits("1", usdtDecimals),
+        fee: CFG.fee,
+        sqrtPriceLimitX96: 0
+      }),
+      quoter.quoteExactInputSingle.staticCall({
+        tokenIn: CFG.usdt,
+        tokenOut: CFG.cth,
+        amountIn,
+        fee: CFG.fee,
+        sqrtPriceLimitX96: 0
+      })
+    ]);
+
+    referenceQuote = refResult[0];
+    const cthPerUsdt = Number(ethers.formatUnits(referenceQuote, cthDecimals));
+    if(cthPerUsdt > 0){
+      $("cthPrice").textContent = `${(1/cthPerUsdt).toLocaleString(undefined,{maximumSignificantDigits:7})} USDT`;
+    }
+
+    lastAmountIn = amountIn;
+    lastQuote = result[0];
+    const slip = BigInt($("slippage").value);
+    const minOut = lastQuote * (10000n - slip) / 10000n;
+
+    $("amountOut").value = formatNum(ethers.formatUnits(lastQuote,cthDecimals), 8);
+    $("minReceived").textContent = `${formatNum(ethers.formatUnits(minOut,cthDecimals),8)} CTH`;
+    updatePriceImpact(amountIn, lastQuote);
+
+    setStatus("Live quote loaded. Review estimated CTH, price impact and minimum received before buying.", "ok");
+    return {amountIn, minOut};
+  }catch(e){
+    lastQuote = 0n;
+    $("amountOut").value = "";
+    $("minReceived").textContent = "—";
+    $("priceImpact").textContent = "—";
+    setStatus(e.shortMessage || e.reason || e.message || "Could not load quote.", "err");
+    return null;
+  }
+}
+
+async function buy(){
+  if(!signer || !account) return setStatus("Connect wallet first.", "warn");
+  try{
+    const q = await getQuote();
+    if(!q) return;
+
+    const usdt = new ethers.Contract(CFG.usdt, erc20Abi, signer);
+    const bal = await usdt.balanceOf(account);
+    if(bal < q.amountIn) return setStatus("USDT balance is too low.", "err");
+
+    const allowance = await usdt.allowance(account, CFG.router);
+    if(allowance < q.amountIn){
+      setStatus("Step 1/2: Approve USDT spending in your wallet…", "warn");
+      const approveTx = await usdt.approve(CFG.router, q.amountIn);
+      setStatus(`Approval submitted: ${approveTx.hash}`, "warn");
+      await approveTx.wait();
+    }
+
+    const router = new ethers.Contract(CFG.router, routerAbi, signer);
+    setStatus("Step 2/2: Confirm the CTH purchase in your wallet…", "warn");
+    const tx = await router.exactInputSingle({
+      tokenIn: CFG.usdt,
+      tokenOut: CFG.cth,
+      fee: CFG.fee,
+      recipient: account,
+      amountIn: q.amountIn,
+      amountOutMinimum: q.minOut,
+      sqrtPriceLimitX96: 0
+    });
+
+    setStatus(`Swap submitted: ${tx.hash}`, "warn");
+    const receipt = await tx.wait();
+    setStatus(`Purchase confirmed in block ${receipt.blockNumber}.`, "ok");
+    $("txHash").textContent = tx.hash;
+    $("txLink").href = `https://bscscan.com/tx/${tx.hash}`;
+    $("txBox").classList.add("show");
+    await refreshBalances();
+    await getQuote();
+  }catch(e){
+    setStatus(e.shortMessage || e.reason || e.message || "Swap failed or was rejected.", "err");
+  }
+}
+
+$("connectBtn").addEventListener("click", connect);
+
+$("openMetaMaskBtn").addEventListener("click", openMetaMask);
+$("switchNetworkBtn").addEventListener("click", async ()=>{
+  try{
+    if(!window.ethereum) return setStatus("MetaMask is not detected.", "err");
+    provider = provider || new ethers.BrowserProvider(window.ethereum);
+    await ensureBsc();
+    await updateNetworkUI();
+    setStatus("BNB Smart Chain selected.", "ok");
+  }catch(e){
+    setStatus(e.shortMessage || e.message || "Could not switch network.", "err");
+  }
+});
+
+$("quoteBtn").addEventListener("click", getQuote);
+$("buyBtn").addEventListener("click", buy);
+
+document.querySelectorAll(".quick-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    $("amountIn").value = btn.dataset.amount;
+    getQuote();
+  });
+});
+
+$("amountIn").addEventListener("input", ()=>{
+  lastQuote=0n;
+  $("amountOut").value="";
+  $("minReceived").textContent="—";
+  $("priceImpact").textContent="—";
+  clearTimeout(quoteTimer);
+  if($("amountIn").value && provider){
+    quoteTimer = setTimeout(getQuote, 450);
+  }
+});
+$("slippage").addEventListener("change", ()=>{ if($("amountIn").value) getQuote(); });
+
+async function initWalletUI(){
+  if(window.ethereum){
+    if(isMetaMask()){
+      setWalletBadge("warn","MetaMask detected");
+      setStatus("MetaMask detected. Connect your wallet to begin.");
+    }else{
+      setWalletBadge("warn","EVM wallet detected");
+      setStatus("An EVM wallet was detected. MetaMask is recommended.");
+    }
+    await updateNetworkUI();
+
+    try{
+      const accounts = await window.ethereum.request({method:"eth_accounts"});
+      if(accounts && accounts.length){
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        account = await signer.getAddress();
+        $("walletText").textContent = short(account);
+        $("connectBtn").textContent = "🦊 MetaMask Connected";
+        $("connectBtn").className = "secondary";
+        setWalletBadge("ok","MetaMask connected");
+        const usdt = new ethers.Contract(CFG.usdt, erc20Abi, provider);
+        const cth = new ethers.Contract(CFG.cth, erc20Abi, provider);
+        usdtDecimals = Number(await usdt.decimals());
+        cthDecimals = Number(await cth.decimals());
+        await refreshBalances();
+        $("buyBtn").disabled = false;
+        try{
+          const q = new ethers.Contract(CFG.quoter, quoterAbi, provider);
+          await getReferenceQuote(q);
+        }catch{}
+      }
+    }catch{}
+  }else{
+    setWalletBadge("err","MetaMask not detected");
+    $("networkText").textContent = "Wallet provider not detected";
+    if(isMobile){
+      setStatus("Open this site inside MetaMask Mobile to connect and buy CTH.", "warn");
+    }else{
+      setStatus("Install the MetaMask browser extension, then reload this page.", "warn");
+    }
+  }
+}
+
+if(window.ethereum){
+  window.ethereum.on?.("accountsChanged", ()=>location.reload());
+  window.ethereum.on?.("chainChanged", ()=>location.reload());
+}
+initWalletUI();
+</script>
+</body>
+</html>
